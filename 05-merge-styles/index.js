@@ -8,8 +8,7 @@ let r = '';
 
 async function removeBundle(bundleName) {
   try {
-    await fsPromises.rm(bundleName, {force: true, recursive: true});
-    func();  
+    await fsPromises.rm(bundleName, {force: true, recursive: true}); 
     return;
   } catch (err) {
     console.error(err);
@@ -18,6 +17,7 @@ async function removeBundle(bundleName) {
 
 const func = async() => {
   try {
+    await removeBundle(bundleName);
     const w = fs.createWriteStream(bundleName, { flags: 'a+' });
     const files = await fsPromises.readdir(dirName, { withFileTypes: true });
     for (const file of files) {
@@ -33,4 +33,4 @@ const func = async() => {
   }
 };
 
-removeBundle(bundleName);
+func(); 

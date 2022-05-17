@@ -12,7 +12,6 @@ async function createDir(dirCopyName) {
 async function removeDir(dirCopyName) {
   try {
     await fsPromises.rm(dirCopyName, {force: true, recursive: true});
-    func(dirName, dirCopyName);  
     return;
   } catch (err) {
     console.error(err);
@@ -21,7 +20,8 @@ async function removeDir(dirCopyName) {
 
 const func = async(dirName, dirCopyName) => {
   try {
-    createDir(dirCopyName);
+    await removeDir(dirCopyName);
+    await createDir(dirCopyName);
     const files = await fsPromises.readdir(dirName, { withFileTypes: true });
     for (const file of files) {
       const fileString = path.join(dirName, file.name);
@@ -40,4 +40,5 @@ const func = async(dirName, dirCopyName) => {
   }
 };
 
-removeDir(dirCopyName);
+
+func(dirName, dirCopyName);
