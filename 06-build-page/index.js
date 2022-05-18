@@ -67,61 +67,22 @@ const makeStyles = async() => {
 };
 
 
-// const replaceHtml = async(templateText, htmlFiles) => {
-//   Object.keys(htmlFiles).forEach((key) => {
-//     templateText = templateText.replace('{{' + key + '}}', htmlFiles[key]);
-//   }
-//   );
-//   const w = fs.createWriteStream(htmlName);
-//   w.write(templateText); 
-// };
-
 const makeHtml = async() => {
-  const r = fs.createReadStream(templateName, 'utf-8');
   const files = await fsPromises.readdir(dirComponentsName, { withFileTypes: true });
+  let templateHtml =  await fs.promises.readFile(templateName, 'utf-8');
 
-  let templateText = '';
-  let N = 0;
- // let htmlFiles = {};
+  for (let i = 0; i < files.length; i++) {
+    const fileString = path.join(dirComponentsName, files[i].name);
+    const tagName = '{{' + path.parse(fileString).name + '}}';
+    if (files[i].isFile()&&path.extname(fileString)==='.html')
+    {
+      const componentText = await fs.promises.readFile(fileString, 'utf-8');
+      templateHtml = templateHtml.replace(tagName, componentText);
+    }
+  }
 
-  r.on('data', (chunk) => (templateText = templateText + chunk));
-
-  r.on('end', () => {
-    files.forEach(file => {
-      let componentText = '';
-      const fileString = path.join(dirComponentsName, file.name);
-      const rr = fs.createReadStream(fileString, 'utf-8');
-      rr.on('data', (chunk) => (componentText = componentText + chunk));
-      rr.on('end', () => {
-        const fileString = path.join(dirComponentsName, file.name);
-        const tagName = '{{' + path.parse(fileString).name + '}}';
-        if (file.isFile()&&path.extname(fileString)==='.html')
-        {
-          console.log(tagName)
-          console.log(componentText)
-          templateText = templateText.replace(tagName, componentText);
-          if(N === files.length){
-            const w = fs.createWriteStream(htmlName);
-            w.write(templateText); 
-          }
-        }
-      });
-      N++;
-    });
-    
-    // for (let i = 0; i < files.length; i++) {
-    //   let text = '';
-    //   const file = files[i]; 
-    //   const fileString = path.join(dirComponentsName, file.name);
-    //   if (file.isFile()&&path.extname(fileString)==='.html')
-    //   {
-    //     const rr = fs.createReadStream(fileString, 'utf-8');        
-    //     rr.on('data', (chunk) => (text = text + chunk));
-    //     rr.on('end', () => {htmlFiles[path.parse(fileString).name] = text; if(i === files.length - 1) {replaceHtml(templateText, htmlFiles);console.log(htmlFiles);}});
-    //   }
-    // }
-  });
-  r.on('error', error => console.log('Error', error.message));  
+  const w = fs.createWriteStream(htmlName);
+  w.write(templateHtml);
 };
 
 const makeDist = async() => {
