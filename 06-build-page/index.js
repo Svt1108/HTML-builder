@@ -1,5 +1,5 @@
 const fs = require('fs');
-const fsPromises = require('fs/promises');
+const fsPromises = fs.promises;
 const path = require('path');
 
 const dirDist = path.join(__dirname, 'project-dist');
@@ -27,7 +27,7 @@ async function removeDir(fileOrDirToRemove) {
   }
 }
 
-const func = async(dirName, dirCopyName) => {
+const copyDir = async(dirName, dirCopyName) => {
   try {
     await createDir(dirCopyName);
     const files = await fsPromises.readdir(dirName, { withFileTypes: true });
@@ -39,7 +39,7 @@ const func = async(dirName, dirCopyName) => {
         fs.copyFile(fileString, fileCopyString, (err) => {if (err) throw err;});
       }
       else {
-        func(fileString, fileCopyString);
+        copyDir(fileString, fileCopyString);
       }
     }
     return;
@@ -66,45 +66,67 @@ const makeStyles = async() => {
   }
 };
 
-const test = async(element, partToWrite, w, partToWriteLast) => {
-  let rComponents = '';
-  let nameComponent;
-  nameComponent = element.slice(2, element.length - 2) + '.html';
-  rComponents = fs.createReadStream(path.join(dirComponentsName, nameComponent), 'utf-8');
-  let text = '';
-  rComponents.on('data', (chunk) => (text = text + chunk));
-  await rComponents.on('end', () => {w.write(partToWrite); w.write(text); w.write(partToWriteLast);});
-  return;
-};
+
+// const replaceHtml = async(templateText, htmlFiles) => {
+//   Object.keys(htmlFiles).forEach((key) => {
+//     templateText = templateText.replace('{{' + key + '}}', htmlFiles[key]);
+//   }
+//   );
+//   const w = fs.createWriteStream(htmlName);
+//   w.write(templateText); 
+// };
 
 const makeHtml = async() => {
   const r = fs.createReadStream(templateName, 'utf-8');
-  const w = fs.createWriteStream(htmlName, { flags: 'a+' });
-  let data = '';
-  
-  let templ = /\{\{([^}}]*)\}\}/g;
-  r.on('data', chunk => data += chunk);
+  const files = await fsPromises.readdir(dirComponentsName, { withFileTypes: true });
+
+  let templateText = '';
+  let N = 0;
+ // let htmlFiles = {};
+
+  r.on('data', (chunk) => (templateText = templateText + chunk));
+
   r.on('end', () => {
-    let partToWrite;
-    let partToWriteLast = '';
-    let start = 0;
-    let N = 1;
-    const array = data.match(templ);
-    array.forEach(element => {
-      partToWrite = data.slice(start, data.indexOf(element));
-      start = data.indexOf(element) + element.length;
-      if (N === array.length) {partToWriteLast = data.slice(start, data.length);}
-      test(element, partToWrite, w, partToWriteLast);
+    files.forEach(file => {
+      let componentText = '';
+      const fileString = path.join(dirComponentsName, file.name);
+      const rr = fs.createReadStream(fileString, 'utf-8');
+      rr.on('data', (chunk) => (componentText = componentText + chunk));
+      rr.on('end', () => {
+        const fileString = path.join(dirComponentsName, file.name);
+        const tagName = '{{' + path.parse(fileString).name + '}}';
+        if (file.isFile()&&path.extname(fileString)==='.html')
+        {
+          console.log(tagName)
+          console.log(componentText)
+          templateText = templateText.replace(tagName, componentText);
+          if(N === files.length){
+            const w = fs.createWriteStream(htmlName);
+            w.write(templateText); 
+          }
+        }
+      });
       N++;
     });
+    
+    // for (let i = 0; i < files.length; i++) {
+    //   let text = '';
+    //   const file = files[i]; 
+    //   const fileString = path.join(dirComponentsName, file.name);
+    //   if (file.isFile()&&path.extname(fileString)==='.html')
+    //   {
+    //     const rr = fs.createReadStream(fileString, 'utf-8');        
+    //     rr.on('data', (chunk) => (text = text + chunk));
+    //     rr.on('end', () => {htmlFiles[path.parse(fileString).name] = text; if(i === files.length - 1) {replaceHtml(templateText, htmlFiles);console.log(htmlFiles);}});
+    //   }
+    // }
   });
-  r.on('error', error => console.log('Error', error.message));
-  
+  r.on('error', error => console.log('Error', error.message));  
 };
 
 const makeDist = async() => {
   await removeDir(dirDist);
-  await func(dirName, dirCopyName);
+  await copyDir(dirName, dirCopyName);
   await makeStyles();
   await makeHtml();
 };
