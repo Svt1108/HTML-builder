@@ -72,9 +72,9 @@ const test = async(element, partToWrite, w, partToWriteLast) => {
   nameComponent = element.slice(2, element.length - 2) + '.html';
   rComponents = fs.createReadStream(path.join(dirComponentsName, nameComponent), 'utf-8');
   let text = '';
-
   rComponents.on('data', (chunk) => (text = text + chunk));
-  rComponents.on('end', () => {w.write(partToWrite); w.write(text); w.write(partToWriteLast);});
+  await rComponents.on('end', () => {w.write(partToWrite); w.write(text); w.write(partToWriteLast);});
+  return;
 };
 
 const makeHtml = async() => {
