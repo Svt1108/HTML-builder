@@ -3,16 +3,15 @@ const fsPromises = fs.promises;
 const path = require('path');
 
 const dirDist = path.join(__dirname, 'project-dist');
-const dirCopyName = path.join(__dirname, 'project-dist/assets');
+const dirCopyName = path.join(__dirname, 'project-dist', 'assets');
 const dirName = path.join(__dirname, 'assets');
 
 const dirComponentsName = path.join(__dirname, 'components');
 const dirStylesName = path.join(__dirname, 'styles');
-const stylesName = path.join(__dirname, 'project-dist/style.css');
-const htmlName = path.join(__dirname, 'project-dist/index.html');
+const stylesName = path.join(__dirname, 'project-dist', 'style.css');
+const htmlName = path.join(__dirname, 'project-dist', 'index.html');
 
 const templateName = path.join(__dirname, 'template.html');
-let r = '';
 
 async function createDir(dirToCreate) {
   await fsPromises.mkdir(dirToCreate, {recursive: true});
@@ -48,17 +47,30 @@ const copyDir = async(dirName, dirCopyName) => {
   }
 };
 
+const writeText = async(txt) => {
+  const w = fs.createWriteStream(stylesName, { flags: 'a+' });
+  w.write(txt);
+  return;
+};
 
 const makeStyles = async() => {
   try {
-    const w = fs.createWriteStream(stylesName, { flags: 'a+' });
     const files = await fsPromises.readdir(dirStylesName, { withFileTypes: true });
     for (const file of files) {
       const fileString = path.join(dirStylesName, file.name);
       if (file.isFile()&&path.extname(fileString)==='.css')
       {
-        r = fs.createReadStream(fileString);
-        r.pipe(w);
+        const textFile = await new Promise((resolve, reject) => {
+          const r = fs.createReadStream(fileString);
+          let text = '';  
+          r.on('data', (chunk) => (text = text + chunk));
+          r.on('end', () => {
+            resolve(text);
+          });
+          r.on('error', reject);
+        });
+
+        await writeText(`${textFile}\n\n`);
       }
     }
   } catch (err) {
@@ -73,7 +85,7 @@ const makeHtml = async() => {
 
   for (let i = 0; i < files.length; i++) {
     const fileString = path.join(dirComponentsName, files[i].name);
-    const tagName = '{{' + path.parse(fileString).name + '}}';
+    const tagName = new RegExp('{{' + path.parse(fileString).name + '}}', 'g');
     if (files[i].isFile()&&path.extname(fileString)==='.html')
     {
       const componentText = await fs.promises.readFile(fileString, 'utf-8');

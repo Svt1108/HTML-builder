@@ -1,10 +1,9 @@
 const fs = require('fs');
-const fsPromises = require('fs/promises');
+const fsPromises = fs.promises;
 const path = require('path');
 
-const dirName = path.join(__dirname, 'styles');
-const bundleName = path.join(__dirname, 'project-dist/bundle.css');
-let r = '';
+const dirStylesName = path.join(__dirname, 'styles');
+const bundleName = path.join(__dirname, 'project-dist', 'bundle.css');
 
 async function removeBundle(bundleName) {
   try {
@@ -15,17 +14,30 @@ async function removeBundle(bundleName) {
   }
 }
 
-const func = async() => {
+const writeText = async(txt) => {
+  const w = fs.createWriteStream(bundleName, { flags: 'a+' });
+  w.write(txt);
+  return;
+};
+
+const makeStyles = async() => {
   try {
-    await removeBundle(bundleName);
-    const w = fs.createWriteStream(bundleName, { flags: 'a+' });
-    const files = await fsPromises.readdir(dirName, { withFileTypes: true });
+    const files = await fsPromises.readdir(dirStylesName, { withFileTypes: true });
     for (const file of files) {
-      const fileString = path.join(dirName, file.name);
+      const fileString = path.join(dirStylesName, file.name);
       if (file.isFile()&&path.extname(fileString)==='.css')
       {
-        r = fs.createReadStream(fileString);
-        r.pipe(w);
+        const textFile = await new Promise((resolve, reject) => {
+          const r = fs.createReadStream(fileString);
+          let text = '';  
+          r.on('data', (chunk) => (text = text + chunk));
+          r.on('end', () => {
+            resolve(text);
+          });
+          r.on('error', reject);
+        });
+
+        await writeText(`${textFile}\n\n`);
       }
     }
   } catch (err) {
@@ -33,4 +45,10 @@ const func = async() => {
   }
 };
 
-func(); 
+
+const makeBundle = async() => {
+  await removeBundle(bundleName);
+  await makeStyles();
+};
+
+makeBundle();
