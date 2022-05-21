@@ -1,4 +1,3 @@
-const { stat } = require('fs');
 const fs = require('fs');
 const fsPromises = fs.promises;
 const path = require('path');
@@ -12,10 +11,8 @@ const func = async() => {
       if (file.isFile())
       {
         const fileString = path.join(dirName, file.name);
-        stat(fileString, (err, stats) => {
-          if (err) throw err;
-          console.log(`${path.parse(fileString).name} - ${path.extname(fileString).slice(1)} - ${stats.size} bytes`);
-        });
+        const fileStat = await fsPromises.stat(fileString);
+        console.log(`${path.parse(fileString).name} - ${path.extname(fileString).slice(1)} - ${fileStat.size} bytes`);
       }
     }
   } catch (err) {
