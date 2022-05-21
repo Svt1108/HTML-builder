@@ -14,7 +14,7 @@ stdout.write('Hello, my friend! Tell me something, please:\n');
 stdin.on('data', (data) => {
   const dataStr = data.toString().trim();
   if (dataStr === 'exit') {
-    stdout.write('\nGood bye! Nice to see you!');
+    stdout.write('Good bye! Nice to see you!');
     process.exit();
   } else {
     fs.appendFile(filePath, data, (err) => {
@@ -25,7 +25,7 @@ stdin.on('data', (data) => {
 
 process.stdin.resume();
 process.on('SIGINT', () => {
-  stdout.write('\nGood bye! Nice to see you!');
+  stdout.write('Good bye! Nice to see you!');
   process.exit(0);
 });
 
